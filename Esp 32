@@ -1,0 +1,80 @@
+#define BLYNK_TEMPLATE_ID "TMPL3RwAkvmst"
+#define BLYNK_TEMPLATE_NAME "Level sensor"
+#define BLYNK_AUTH_TOKEN "lhOZX3yNS9m79YbJmWuP4447ibMzVS-T" // Padannamakkal 
+
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+
+const char* ssid = "centacs";       // Your Wi-Fi SSID
+const char* password = "00000000"; // Your Wi-Fi password
+
+#define Hundred 32 // GPIO 32 for 100%
+#define Seventyfive 33 // GPIO 33 for 75%
+#define Fifty 25 // GPIO 25 for 50%
+#define Twentyfive 26 // GPIO 26 for 25%
+
+void setup() {
+  Serial.begin(115200);
+
+  // Connect to Wi-Fi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected to WiFi!");
+
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, password); // Blynk initialization
+
+  pinMode(Hundred, INPUT_PULLUP);
+  pinMode(Seventyfive, INPUT_PULLUP);
+  pinMode(Fifty, INPUT_PULLUP);
+  pinMode(Twentyfive, INPUT_PULLUP);
+}
+
+void loop() {
+  // Check Wi-Fi connection
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi disconnected. Disconnecting from Blynk...");
+    Blynk.disconnect(); // Notify Blynk server immediately
+  } else {
+    // Read sensor values
+    int sensorValue = readSensor();
+  
+    // Send data to Blynk
+    Blynk.virtualWrite(V0, sensorValue); // Send sensor value to virtual pin V0
+    Blynk.virtualWrite(V1, getMessage(sensorValue)); // Send message to virtual pin V1
+
+    Blynk.run(); // Handle Blynk connection
+  }
+
+  delay(200); // Short delay to prevent flooding
+}
+
+// Function to read sensor values
+int readSensor() {
+  if (digitalRead(Hundred) == LOW) {
+    return 100; // Tank Full
+  } else if (digitalRead(Seventyfive) == LOW) {
+    return 75; // Level 75%
+  } else if (digitalRead(Fifty) == LOW) {
+    return 50; // Level 50%
+  } else if (digitalRead(Twentyfive) == LOW) {
+    return 25; // Level 25%
+  } else {
+    return 0; // Low Level
+  }
+}
+
+// Function to get message based on sensor value
+String getMessage(int value) {
+  switch (value) {
+    case 100: return "Tank Full";
+    case 75: return "Level 75%";
+    case 50: return "Level 50%";
+    case 25: return "Level 25%";
+    case 0: return "Low Level";
+    default: return "Sensor Error"; // If no condition is met
+  }
+}
